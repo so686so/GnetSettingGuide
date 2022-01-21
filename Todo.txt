@@ -1,0 +1,162 @@
+
+= [ 리눅스 초기 세팅 ] ===============================================================================
+0. ' cd ~ ' 에 블랙박스 프로젝트용 ' mkdir blackbox '
+
+1. .bashrc 파일을 ' cd ~ ' 에 넣는다
+	: 홈 디렉토리에 bashrc 파일 덮어쓰기
+
+2. bashrc 파일 내 ' case $TIBET_PROJECT in ' 경로들 자신의 컴퓨터에 맞게 재설정
+	: 사용자 계정명 바꿔줘야함 ( 싹 다 아래 BEFORE 에서 AFTER 처럼 )
+	: BEFORE 	-> COMPILER_DIR1=/home/bs/A20/compiler/external-toolchain/bin
+	: AFTER	-> COMPILER_DIR1=/home/{내 사용자 계정명}/blackbox/A20/compiler/external-toolchain/bin : 아무튼 생성한 디렉토리에 맞게
+
+3. ' cd ~ ' 에 ' mkdir tftpboot ' 
+	: 홈 디렉토리에 컴파일 결과물 저장할 디렉토리 생성
+
+4. tftpboot 디렉토리 안에 각 모델에 맞는 디렉토리 생성
+	: .bashrc 파일 안 ' case $TIBET_PROJECT in ' 항목 중 해당 모델 ' THIS_INSTALL_PATH ' 참조 ( ex - gnet_s3 / gnet_v3 )
+
+5. 각 모델 디렉토리 내부에 app, fw_install, os 디렉토리 생성
+
+6. ' cd / '에 ' ln -s ~/tftpboot '
+	: 최상위 디렉토리에 tftpboot의 링크 파일 생성
+
+7. ' ~/blackbox ' 에 project_change.sh 파일 넣기
+
+8. 2번 항목처럼, project_change.sh 파일도 열어서 경로들 자신의 컴퓨터에 맞게 재설정
+===============================================================================================
+
+
+
+= [ 패키지 설치 ] ===================================================================================
+# sudo apt-get install gcc-arm-linux-gnueabi
+  ( floating point unit이 있는 경우는 sudo apt-get install gcc-arm-linux-gnueabihf ).
+
+sudo apt-get install libc6-armel-cross libc6-dev-armel-cross
+sudo apt-get install binutils-arm-linux-gnueabi
+sudo apt-get install u-boot-tools
+sudo apt-get install libncurses5-dev
+
+sudo apt-get install git-core gnupg flex bison gperf build-essential subversion vim
+sudo apt-get install zip curl zlib1g-dev gcc-multilib g++-multilib texinfo
+sudo apt-get install lib32ncurses5-dev autoconf libtool
+sudo apt-get install x11proto-core-dev libx11-dev lib32z-dev ccache
+sudo apt-get install libgl1-mesa-dev libxml2-utils xsltproc unzip u-boot-tools gawk
+sudo apt-get install nfs-kernel-server ctags libssl-dev lzop
+sudo apt-get install python-dev -y
+# opengl library
+sudo apt-get install libglu1-mesa-dev -y
+
+- 겹치는 게 있을 수도 있음
+- 안되면 안될 때마다 필요 패키지 설치
+===============================================================================================
+
+
+
+= [ 프로젝트 clone 후 컴파일 과정 ] =======================================================================
+0. git 에서 소스 다운
+	: git 계정 권한 부여받아야함
+	: ex) git clone http://125.7.227.155:7500/blackbox/v3.git
+
+1. ' ~/.bashrc ' 파일 내 ' TIBET_PROJECT ' 주석처리 변경
+	: v3 프로젝트 진행 시, v3 주석처리 해제 및 이외 프로젝트 주석처리
+
+2. ' source ~/.bashrc '
+	: bashrc 파일 변경사항 재적용.
+
+3. ' ~/blackbox ' 내 ' ./project_change.sh {프로젝트명} '
+	: ex) ./project_change.sh v3
+	: blackbox 디렉토리에 system 과 source 디렉토리 링크
+
+4. 컴파일 시작 상세 설명 ( v3 프로젝트 기준 설명 )
+----------------------------------------------------------------------------
+1) 커널에 자리 잡기
+	' cd ~/blackbox/system/kernel '
+	' ./mkimage.sh modules '
+	' ./mkimage.sh cp '		
+	' ./mkimage.sh '
+   실행하고 성공 시, 아래와 같은 메세지가 출력됨
+	   './output/boot.img' -> '/tftpboot/gnet_v3/os/gnet_kernel_v3_20210531.arm'
+   크로스 컴파일 시 처음 한 번만 하면 os 디렉토리에 자리를 잡음
+   하지만, system에 있는 코드 건드리면 다시 실행해서 자리를 재차 잡아야 함
+----------------------------------------------------------------------------
+2) 파일 분할 자리 잡기
+	' cd ~/blackbox/source '
+	' ./release.sh '
+   릴리즈 정식 버전을 내는 것. 파일 분할 자리를 잡아야 하기 때문에
+   디버그 버전을 컴파일 하려 할 때에도 처음에는 release.sh를 실행해야 한다...?
+----------------------------------------------------------------------------
+3) 컴파일
+	' cd ~/blackbox/source ' 에서 make clean install 또는 make install
+   실행 시 system 폴더에 적용됨
+
+	make clean install = 기존에 있었던 메이크를 싹 지우고 컴파일 함 
+		1) 오래 걸림
+ 		2) 헤더를 건드릴 때만 실행
+
+	make install = 기존거 그대로 컴파일
+		1) 빠름
+		2) 헤더 안건드리면 이거 하면 됨
+----------------------------------------------------------------------------
+4) 펌웨어 install 파일 생성
+	' cd ~/blackbox/system '
+	' ./mk_app.sh '
+   실행하고 나면, tftpboot 디렉토리 내 ' ~/tftpboot/gnet_v3/app ' 및 ' ~/tftpboot/gnet_v3/fw_install ' 에 파일이 만들어짐
+   여기서는 os + app 한게 fw_install로 가고 항상 각각 폴더에는 한개의 파일이 존재해야 한다.
+----------------------------------------------------------------------------
+===============================================================================================
+
+
+
+= [ NOTICE ] ======================================================================================
+- V3 프로젝트 컴파일러는 A3 것을 쓴다
+	:  V3)
+	     COMPILER_DIR1=/home/sobyungjun/blackbox/a3/compiler/external-toolchain/bin 맞음
+
+- 
+===============================================================================================
+
+
+= [ NFS 연동하는 법 ( Vbox 기준 ) ] =======================================================================
+- ' Oracle VM VirtualBox 관리자 -> 설정 -> 네트워크 -> 다음에 연결됨 ' 을 ' 어댑터에 브리지 ' 로 설정
+- ' 이름 ' 을 ' Realtek PCle GbE Family Controller ' 로 설정
+
+- Ubuntu 실행 후
+- ' sudo vim /etc/exprots '
+- /home/{사용자명}/install 192.168.0.200(rw,no_subtree_check,no_root_squash,sync) 입력
+
+- ' ifconfig '
+- 내부 아이피 주소 확인 ( 192. 168. 0. x 형태 )
+
+- 시리얼에서 nfs.sh 쉘 스크립트 확인
+
+elif [ H$1 = "H4" ]
+then
+        ifconfig eth0 192.168.0.200
+        mount -o nolock {내부아이피주소}:/home/{사용자명}/install/gnet_v3 /janus
+
+형태로 마운트 옵션 적혀 있어야 함 : NFS를 이용해 컴퓨터의 ~/install/gnet_v3 디렉토리를 블랙박스 보드의 /janus 에 마운트 시키겠다
+
+- 위 예시 기준 ' ./nfs.sh 4 ' 입력
+===============================================================================================
+
+
+
+= [ 약식 컴파일 및 소스 파일 약식 적용 방법 ] ================================================================
+-1--------------------------------------------------------------------------
+0. micom_app -w0
+1. NFS 연동
+2. janus 디렉토리에 컴파일 하고 싶은 fw_install 파일(.arm) 넣기
+3. ./fwupdate -t {arm파일명}
+----------------------------------------------------------------------------
+
+-2--------------------------------------------------------------------------
+0. micom_app -w0
+1. janus/pack 디렉토리 내 해당 모델 디렉토리를 들어간다
+2. cp -a * ../.. ( oem.ini 파일을 상위 두 번째 디렉토리에 복사 )
+3. janus/skin 디렉토리 내 해당 모델 디렉토리를 들어간다
+4. cp -a * ./.. ( 모델별 스킨 디렉토리 내 3 파일을 상위 첫 번째 디렉토리에 복사 )
+5. (v3 모델일 경우) Language도 똑같은 방식으로 상위 디렉토리에 복사해준다
+6. ./cvr -d 0
+----------------------------------------------------------------------------
+===============================================================================================

@@ -15,9 +15,7 @@
 ## **1. VBox 설치 및 세팅**
 
 ### **1.1 VBox 설치**
-
 > ### [https://www.virtualbox.org/](https://www.virtualbox.org/)
-
 - 전부 다 기본값으로 설치
 - [참조 링크 - VBox 설치](https://phantom.tistory.com/6)
 
@@ -32,3 +30,14 @@
 ### **2.1 Ubuntu 설치**
 > ### Ubuntu Version : **16.04** / 20.04
 - [참조 링크 - Ubuntu 설치](https://phantom.tistory.com/7?category=1175951)
+
+### **2.2 Ubuntu 초기 세팅**
+### **2.2.1 한글 세팅**
+- [참조 링크 - 한글 세팅하기](https://webnautes.tistory.com/1199)
+
+### **2.2.2 GNET Setting Script 받기**
+```
+sudo apt-get update
+sudo apt-get upgrad
+sudo apt-get install git
+```
